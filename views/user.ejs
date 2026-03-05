@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ambil Antrian - Toko Kami</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #64748b;
+            --success: #22c55e;
+            --bg: #f8fafc;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            width: 100%;
+            max-width: 450px;
+            padding: 40px;
+            border-radius: 24px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .logo-placeholder {
+            width: 80px;
+            height: 80px;
+            background: var(--primary);
+            border-radius: 20px;
+            margin: 0 auto 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 40px;
+            font-weight: bold;
+        }
+
+        h1 { font-size: 24px; color: #1e293b; margin: 0 0 10px; }
+        p { color: var(--secondary); margin-bottom: 30px; }
+
+        .current-box {
+            background: #eff6ff;
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 30px;
+        }
+
+        .current-label { font-size: 14px; color: var(--primary); font-weight: 600; text-transform: uppercase; }
+        .current-number { font-size: 64px; font-weight: 800; color: var(--primary); margin: 5px 0; }
+
+        form { display: flex; flex-direction: column; gap: 15px; }
+
+        .input-group { text-align: left; }
+        label { display: block; font-size: 14px; font-weight: 600; color: #475569; margin-bottom: 5px; }
+        
+        input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+
+        input:focus { outline: none; border-color: var(--primary); }
+
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 18px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+            margin-top: 10px;
+        }
+
+        button:active { transform: scale(0.98); }
+        button:hover { background: #1d4ed8; }
+
+        .footer-note { font-size: 12px; color: #94a3b8; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="logo-placeholder">A</div>
+    <h1>Selamat Datang</h1>
+    <p>Silakan isi data untuk mengambil nomor antrian Anda.</p>
+
+    <div class="current-box">
+        <div class="current-label">Nomor Antrian Terakhir</div>
+        <div class="current-number" id="live-number"><%= currentNumber %></div>
+    </div>
+
+    <form action="/ambil-antrian" method="POST" id="queue-form">
+        <div class="input-group">
+            <label>Nama Lengkap</label>
+            <input type="text" name="name" placeholder="Contoh: Budi Santoso" required>
+        </div>
+        <div class="input-group">
+            <label>Nomor WhatsApp</label>
+            <input type="tel" name="phone" placeholder="Contoh: 08123456789" required>
+        </div>
+        <button type="submit" id="btn-submit">MASUK ANTRIAN</button>
+    </form>
+
+    <div class="footer-note">
+        Tiket PDF akan terunduh otomatis setelah Anda klik tombol di atas.
+    </div>
+</div>
+
+<script>
+    const socket = io();
+
+    // Update nomor terakhir secara real-time
+    socket.on('new-queue', (data) => {
+        document.getElementById('live-number').innerText = data.queue_number;
+    });
+
+    // Menangani pengiriman form (opsional: tambahkan loading state)
+    const form = document.getElementById('queue-form');
+    const btn = document.getElementById('btn-submit');
+
+    form.onsubmit = function() {
+        btn.innerText = "Memproses...";
+        btn.style.opacity = "0.7";
+        btn.disabled = true;
+
+        // Form akan mengirim data secara normal dan memicu unduhan PDF dari server
+        // Kita beri sedikit jeda sebelum mengaktifkan tombol kembali
+        setTimeout(() => {
+            btn.innerText = "MASUK ANTRIAN";
+            btn.style.opacity = "1";
+            btn.disabled = false;
+            form.reset();
+        }, 3000);
+    };
+</script>
+
+</body>
+</html>

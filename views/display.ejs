@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor Antrian Utama</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --primary: #22c55e;
+            --accent: #3b82f6;
+            --text-main: #ffffff;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* AREA KIRI: TAMPILAN UTAMA */
+        .main-display {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-right: 2px solid #334155;
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+            transition: all 0.5s ease;
+        }
+
+        .main-label {
+            font-size: 2rem;
+            color: var(--text-muted);
+            letter-spacing: 10px;
+            margin-bottom: 10px;
+        }
+
+        .main-number {
+            font-size: 22rem;
+            font-weight: 900;
+            color: var(--primary);
+            margin: 0;
+            text-shadow: 0 0 50px rgba(34, 197, 94, 0.3);
+            transition: opacity 0.5s ease;
+        }
+
+        .main-name {
+            font-size: 4.5rem;
+            font-weight: 600;
+            color: white;
+            transition: opacity 0.5s ease;
+        }
+
+        /* AREA KANAN: SIDEBAR 5 TERBARU */
+        .sidebar {
+            flex: 0.8;
+            background-color: var(--card-bg);
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            font-size: 1.5rem;
+            color: #fbbf24;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #334155;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .queue-item {
+            background: #0f172a;
+            padding: 18px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 5px solid var(--accent);
+            transition: all 0.5s ease;
+        }
+
+        .item-name {
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: #f1f5f9;
+        }
+
+        .item-num {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--accent);
+        }
+
+        /* Efek Animasi */
+        .flash { animation: blink 0.5s 3; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+        
+        .fade-out { opacity: 0; transform: translateX(50px); }
+    </style>
+</head>
+<body>
+
+    <div class="main-display" id="main-area">
+        <div class="main-label">SEDANG DIPROSES</div>
+        <div class="main-number" id="display-num">
+            <%= currentCalling ? currentCalling.queue_number : '---' %>
+        </div>
+        <div class="main-name" id="display-name">
+            <%= currentCalling ? currentCalling.customer_name : 'Menunggu Antrian' %>
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <div class="sidebar-header">ANTRIAN TERBARU</div>
+        <div id="sidebar-list">
+            <% waitingList.forEach(item => { %>
+                <div class="queue-item" id="item-<%= item._id %>">
+                    <div class="item-name"><%= item.customer_name %></div>
+                    <div class="item-num">#<%= item.queue_number %></div>
+                </div>
+            <% }) %>
+        </div>
+    </div>
+
+    <audio id="bell-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-software-interface-start-2574.mp3"></audio>
+
+    <script>
+        const socket = io();
+        const bell = document.getElementById('bell-sound');
+        const mainArea = document.getElementById('main-area');
+
+        // 1. KETIKA ADMIN KLIK "PANGGIL"
+        socket.on('status-updated', (data) => {
+            if (data.status === 'Sedang Dipanggil') {
+                updateMainDisplay(data.queue_number, data.customer_name);
+                
+                // Bunyikan bel & Berkedip
+                bell.play().catch(e => console.log("User must interact first for sound"));
+                mainArea.classList.add('flash');
+                setTimeout(() => mainArea.classList.remove('flash'), 3000);
+            }
+        });
+
+        // 2. KETIKA PELANGGAN BARU DAFTAR (Sidebar bertambah)
+        socket.on('new-queue', (data) => {
+            const list = document.getElementById('sidebar-list');
+            const div = document.createElement('div');
+            div.className = 'queue-item';
+            div.id = `item-${data._id}`;
+            div.innerHTML = `
+                <div class="item-name">${data.customer_name}</div>
+                <div class="item-num">#${data.queue_number}</div>
+            `;
+            list.prepend(div);
+            if (list.children.length > 5) list.removeChild(list.lastChild);
+        });
+
+        // 3. KETIKA STATUS FINAL "TELAH DIPROSES" (Sidebar berkurang)
+        socket.on('status-finalized', (data) => {
+            const element = document.getElementById(`item-${data.id}`);
+            if (element) {
+                element.classList.add('fade-out');
+                setTimeout(() => element.remove(), 500);
+            }
+        });
+
+        // 4. KETIKA AUTO-NEXT (Update monitor ke antrian selanjutnya)
+        socket.on('auto-next', (data) => {
+            updateMainDisplay(data.queue_number, data.customer_name);
+            if(data.hasData) bell.play().catch(e => {});
+        });
+
+        // Fungsi Helper untuk Update Monitor Utama dengan Transisi
+        function updateMainDisplay(num, name) {
+            const displayNum = document.getElementById('display-num');
+            const displayName = document.getElementById('display-name');
+
+            displayNum.style.opacity = "0";
+            displayName.style.opacity = "0";
+
+            setTimeout(() => {
+                displayNum.innerText = num;
+                displayName.innerText = name;
+                displayNum.style.opacity = "1";
+                displayName.style.opacity = "1";
+            }, 500);
+        }
+    </script>
+</body>
+</html>
