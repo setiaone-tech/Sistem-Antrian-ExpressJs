@@ -36,7 +36,6 @@
         .btn-verify { background: var(--success); color: white; }
         .btn-disabled { background: #cbd5e1; color: #64748b; cursor: not-allowed; }
 
-        /* Modal */
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); justify-content: center; align-items: center; z-index: 50; }
         .modal { background: white; padding: 30px; border-radius: 16px; width: 400px; text-align: center; }
         .modal input { width: 100%; padding: 15px; font-size: 24px; text-align: center; border: 2px solid #e2e8f0; border-radius: 12px; margin: 20px 0; text-transform: uppercase; font-weight: bold; letter-spacing: 4px; }
@@ -58,6 +57,7 @@
                 <th>No</th>
                 <th>Pelanggan</th>
                 <th>Kontak</th>
+                <th>Timestamp</th>
                 <th>Status</th>
                 <th>Aksi</th>
             </tr>
@@ -68,6 +68,7 @@
                     <td><strong>#<%= item.queue_number %></strong></td>
                     <td><%= item.customer_name %></td>
                     <td><%= item.customer_phone %></td>
+                    <td><%= item.createdAt %></td>
                     <td>
                         <span id="badge-<%= item._id %>" class="badge <%= item.status === 'waiting' ? 'badge-waiting' : 'badge-done' %>">
                             <%= item.status %>
@@ -103,7 +104,6 @@
 <script>
     const socket = io();
 
-    // 1. Listen Antrian Baru
     socket.on('new-queue', (data) => {
         const tbody = document.getElementById('queueBody');
         const row = `
@@ -111,6 +111,7 @@
                 <td><strong>#${data.queue_number}</strong></td>
                 <td>${data.customer_name}</td>
                 <td>${data.customer_phone}</td>
+                <td>${data.createdAt}</td>
                 <td><span id="badge-${data._id}" class="badge badge-waiting">waiting</span></td>
                 <td id="action-${data._id}">
                     <button id="btn-panggil-${data._id}" class="btn btn-call" onclick="panggilKeLayar('${data._id}')">Panggil</button>
@@ -120,7 +121,6 @@
         tbody.insertAdjacentHTML('beforeend', row);
     });
 
-    // 2. Tahap 1: Panggil ke Layar TV
     async function panggilKeLayar(id) {
         const res = await fetch(`/admin/panggil/${id}`, { method: 'POST' });
         if(res.ok) {
@@ -132,7 +132,6 @@
         }
     }
 
-    // 3. Tahap 2: Modal Verifikasi
     function openModal(id, num) {
         document.getElementById('currentQueueId').value = id;
         document.getElementById('modalNum').innerText = num;
@@ -158,13 +157,11 @@
         const result = await res.json();
         if (result.success) {
             closeModal();
-            // Tampilan akan diupdate oleh socket status-finalized
         } else {
-            alert("❌ Kode Salah! Cek PDF Pelanggan.");
+            alert("Kode Salah! Cek PDF Pelanggan.");
         }
     }
 
-    // 4. Update Status Final
     socket.on('status-finalized', (data) => {
         const badge = document.getElementById(`badge-${data.id}`);
         const action = document.getElementById(`action-${data.id}`);
@@ -173,11 +170,10 @@
             badge.className = 'badge badge-done';
         }
         if(action) {
-            action.innerHTML = '<span style="color: var(--success)">✅ Selesai</span>';
+            action.innerHTML = '<span style="color: var(--success)">Selesai</span>';
         }
     });
 
-    // Filter Pencarian
     function filterTable() {
         const input = document.getElementById("searchInput").value.toUpperCase();
         const rows = document.getElementById("queueBody").getElementsByTagName("tr");

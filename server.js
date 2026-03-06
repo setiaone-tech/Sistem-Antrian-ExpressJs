@@ -63,7 +63,6 @@ app.post('/ambil-antrian', async (req, res) => {
             time: newQueue.createdAt.toLocaleTimeString('id-ID')
         });
 
-        // GENERATE PDF
         const doc = new PDFDocument({ size: [300, 450], margin: 20 });
         
         res.setHeader('Content-Type', 'application/pdf');
