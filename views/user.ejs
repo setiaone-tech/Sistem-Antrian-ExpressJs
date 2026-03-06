@@ -128,12 +128,10 @@
 <script>
     const socket = io();
 
-    // Update nomor terakhir secara real-time
     socket.on('new-queue', (data) => {
         document.getElementById('live-number').innerText = data.queue_number;
     });
 
-    // Menangani pengiriman form (opsional: tambahkan loading state)
     const form = document.getElementById('queue-form');
     const btn = document.getElementById('btn-submit');
 
@@ -142,8 +140,6 @@
         btn.style.opacity = "0.7";
         btn.disabled = true;
 
-        // Form akan mengirim data secara normal dan memicu unduhan PDF dari server
-        // Kita beri sedikit jeda sebelum mengaktifkan tombol kembali
         setTimeout(() => {
             btn.innerText = "MASUK ANTRIAN";
             btn.style.opacity = "1";

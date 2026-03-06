@@ -7,7 +7,6 @@ const path = require('path');
 const PDFDocument = require('pdfkit');
 const crypto = require('crypto');
 
-// Import Models
 const Queue = require('./models/Queue');
 const Counter = require('./models/Counter');
 
@@ -15,25 +14,17 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// Middleware
 app.set('view engine', 'ejs');
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Database Connection
-mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/antrian_toko')
-    .then(() => console.log('✅ MongoDB Connected'))
-    .catch(err => console.error('❌ MongoDB Error:', err));
+mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/queue_system')
+    .then(() => console.log('MongoDB Connected'))
+    .catch(err => console.error('MongoDB Error:', err));
 
-// Helper: Get Today Date String
 const getTodayString = () => new Date().toISOString().split('T')[0];
 
-// --- ROUTES ---
-
-/**
- * 1. HALAMAN PELANGGAN (User/Kiosk)
- */
 app.get('/', async (req, res) => {
     const today = getTodayString();
     const lastCounter = await Counter.findOne({ date_string: today });
@@ -41,17 +32,12 @@ app.get('/', async (req, res) => {
     res.render('user', { currentNumber });
 });
 
-/**
- * 2. PROSES AMBIL ANTRIAN & GENERATE PDF
- */
 app.post('/ambil-antrian', async (req, res) => {
     try {
         const { name, phone } = req.body;
         const today = getTodayString();
-        // Generate 6 Digit Kode Unik (Hex)
         const verificationCode = crypto.randomBytes(3).toString('hex').toUpperCase();
 
-        // Atomic Increment untuk nomor antrian
         const counter = await Counter.findOneAndUpdate(
             { date_string: today },
             { $inc: { last_number: 1 } },
@@ -60,7 +46,6 @@ app.post('/ambil-antrian', async (req, res) => {
 
         const nextNumber = counter.last_number;
 
-        // Simpan ke Database
         const newQueue = new Queue({
             queue_number: nextNumber,
             customer_name: name,
@@ -70,7 +55,6 @@ app.post('/ambil-antrian', async (req, res) => {
         });
         await newQueue.save();
 
-        // Broadcast ke Admin & Display (Sidebar terbaru)
         io.emit('new-queue', {
             _id: newQueue._id,
             queue_number: nextNumber,
@@ -82,7 +66,6 @@ app.post('/ambil-antrian', async (req, res) => {
         // GENERATE PDF
         const doc = new PDFDocument({ size: [300, 450], margin: 20 });
         
-        // Atur Header agar browser mendownload file
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename=Antrian-${nextNumber}.pdf`);
 
@@ -109,24 +92,17 @@ app.post('/ambil-antrian', async (req, res) => {
     }
 });
 
-/**
- * 3. HALAMAN ADMIN
- */
 app.get('/admin', async (req, res) => {
     const today = getTodayString();
     const list = await Queue.find({ date_string: today }).sort({ queue_number: 1 });
     res.render('admin', { list });
 });
 
-/**
- * 4. ADMIN: PANGGIL KE LAYAR (Tahap 1)
- */
 app.post('/admin/panggil/:id', async (req, res) => {
     try {
         const queue = await Queue.findById(req.params.id);
         if (!queue) return res.status(404).send();
 
-        // Emit ke Display TV
         io.emit('status-updated', {
             status: 'Sedang Dipanggil',
             queue_number: queue.queue_number,
@@ -139,9 +115,6 @@ app.post('/admin/panggil/:id', async (req, res) => {
     }
 });
 
-/**
- * 5. ADMIN: VERIFIKASI KODE (Tahap 2)
- */
 app.post('/admin/verify-and-process', async (req, res) => {
     try {
         const { id, code } = req.body;
@@ -152,16 +125,13 @@ app.post('/admin/verify-and-process', async (req, res) => {
             queue.status = 'Telah Diproses';
             await queue.save();
 
-            // 1. Beritahu Admin bahwa baris ini sudah selesai
             io.emit('status-finalized', { id: queue._id });
 
-            // 2. CARI ANTRIAN BERIKUTNYA SECARA OTOMATIS
             const nextInLine = await Queue.findOne({ 
                 date_string: today, 
                 status: 'waiting' 
-            }).sort({ queue_number: 1 }); // Ambil nomor terkecil yang masih nunggu
+            }).sort({ queue_number: 1 });
 
-            // 3. Kirim instruksi ke Display untuk update tampilan utama
             io.emit('auto-next', {
                 hasData: !!nextInLine,
                 queue_number: nextInLine ? nextInLine.queue_number : '---',
@@ -177,9 +147,6 @@ app.post('/admin/verify-and-process', async (req, res) => {
     }
 });
 
-/**
- * 6. HALAMAN DISPLAY MONITOR
- */
 app.get('/display', async (req, res) => {
     const today = getTodayString();
     
@@ -196,8 +163,7 @@ app.get('/display', async (req, res) => {
     res.render('display', { currentCalling, waitingList });
 });
 
-// Start Server
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`🚀 Server berjalan di http://localhost:${PORT}`);
+    console.log(`Server berjalan di http://localhost:${PORT}`);
 });

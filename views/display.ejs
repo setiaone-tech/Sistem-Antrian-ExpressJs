@@ -25,7 +25,6 @@
             overflow: hidden;
         }
 
-        /* AREA KIRI: TAMPILAN UTAMA */
         .main-display {
             flex: 2;
             display: flex;
@@ -60,7 +59,6 @@
             transition: opacity 0.5s ease;
         }
 
-        /* AREA KANAN: SIDEBAR 5 TERBARU */
         .sidebar {
             flex: 0.8;
             background-color: var(--card-bg);
@@ -103,7 +101,6 @@
             color: var(--accent);
         }
 
-        /* Efek Animasi */
         .flash { animation: blink 0.5s 3; }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
         
@@ -134,26 +131,19 @@
         </div>
     </div>
 
-    <audio id="bell-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-software-interface-start-2574.mp3"></audio>
-
     <script>
         const socket = io();
-        const bell = document.getElementById('bell-sound');
         const mainArea = document.getElementById('main-area');
 
-        // 1. KETIKA ADMIN KLIK "PANGGIL"
         socket.on('status-updated', (data) => {
             if (data.status === 'Sedang Dipanggil') {
                 updateMainDisplay(data.queue_number, data.customer_name);
-                
-                // Bunyikan bel & Berkedip
-                bell.play().catch(e => console.log("User must interact first for sound"));
+            
                 mainArea.classList.add('flash');
                 setTimeout(() => mainArea.classList.remove('flash'), 3000);
             }
         });
 
-        // 2. KETIKA PELANGGAN BARU DAFTAR (Sidebar bertambah)
         socket.on('new-queue', (data) => {
             const list = document.getElementById('sidebar-list');
             const div = document.createElement('div');
@@ -167,7 +157,6 @@
             if (list.children.length > 5) list.removeChild(list.lastChild);
         });
 
-        // 3. KETIKA STATUS FINAL "TELAH DIPROSES" (Sidebar berkurang)
         socket.on('status-finalized', (data) => {
             const element = document.getElementById(`item-${data.id}`);
             if (element) {
@@ -176,13 +165,11 @@
             }
         });
 
-        // 4. KETIKA AUTO-NEXT (Update monitor ke antrian selanjutnya)
         socket.on('auto-next', (data) => {
             updateMainDisplay(data.queue_number, data.customer_name);
             if(data.hasData) bell.play().catch(e => {});
         });
 
-        // Fungsi Helper untuk Update Monitor Utama dengan Transisi
         function updateMainDisplay(num, name) {
             const displayNum = document.getElementById('display-num');
             const displayName = document.getElementById('display-name');
