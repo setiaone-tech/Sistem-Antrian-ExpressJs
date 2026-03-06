@@ -1,0 +1,19 @@
+Pertanyaan tambahan : 
+1. monolith atau microservice? Jelaskan pendapat Anda! 
+=> Tergantung dari sebesar apa sistem itu akan bekerja dan akan diimplementasikan, jika sistem tersebut hanya skala kecil seperti toko UMKM menggunakan monolith lebih cocok karena sistem akan lebih cepat tentunya.
+Tapi jika sistem sudah skala besar maka lebih cocok menggunakan microservice karena pekerjaan pada sistem bisa dibagi", apalagi ketika adanya update sistem ketika menggunakan microservice maka sistem tidak perlu mati sepenuhnya
+hanya bagian sistem yang diupdate saja yang perlu dimatikan sehingga tidak mengganggu bagian lainnya.
+
+2. MVC atau FE & BE dipisah? Jelaskan pendapat Anda! 
+=> Tergantung pada skala tim yang membangun, jika sistem tersebut dibangun oleh tim kecil/solo developer maka bisa menggunakan MVC dalam 1 projek sistem dengan begitu pengembangannya bisa lebih cepat.
+Tapi jika sistem tersebut dibangun oleh tim besar/beberapa divisi tim maka menggunakan FE dan BE dipisah lebih cocok, karena tiap developer hanya akan fokus pada tugasnya masing" yang telah dibagi.
+
+3. Jika data sudah mencapai jutaan data, bagaimana cara mengatasi query lambat? Silahkan tunjukkan pada 
+code Anda. 
+=> Salah satu cara yang saya terapkan adalah dengan indexing, dengan ini memungkinkan query berjalan lebih cepat terutama dalam proses pencarian data karena query langsung lompat ke posisi index yang telah disusun.
+Jika tanpa index maka ketika mencari sesuatu di tabel A maka query akan mencari satu per satu dari tabel tersebut.
+Pada project ini saya menerapkan indexing salah satu nya di models/Queue.js yaitu
+
+QueueSchema.index({ queue_number: 1, date_string: 1 }, { unique: true });
+
+indexing itu berguna untuk mencari nomer antrian dan tanggal dihari itu agar tidak duplikat.

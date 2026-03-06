@@ -26,21 +26,21 @@ Pastikan perangkat Anda sudah terinstal:
 1. **Clone Project**
    ```bash
    git clone [https://github.com/setiaone-tech/Sistem-Antrian-ExpressJs.git](https://github.com/setiaone-tech/Sistem-Antrian-ExpressJs.git)
-   cd Sistem-Antrian-ExpressJs```
+   cd Sistem-Antrian-ExpressJs
 
 2. **Install Library**
    ```bash
-   npm install express mongoose socket.io pdfkit dotenv```
+   npm install express mongoose socket.io pdfkit dotenv
 
 3. **Konfigurasi Environment**
    Buat file .env di folder root dan sesuaikan
    ```code snippet
    PORT=3000
-   MONGO_URI='mongodb://127.0.0.1:27017/queue_system'```
+   MONGO_URI='mongodb://127.0.0.1:27017/queue_system'
 
 4. **Jalankan Aplikasi**
    ```bash
-   node server.js```
+   node server.js
 
 ---
 
@@ -51,19 +51,16 @@ Sistem ini memiliki 3 antarmuka utama yang bisa saling terhubung:
    Pelanggan yang ingin mengambil antrian dapat mengakses ke halaman ini.
    ```URL
    http://localhost:3000/
-   ```
 
 2. **Panel Admin**
    Admin/Customer Service dapat melakukan panggilan nomer antrian dengan mengakses halaman ini.
    ```URL
    http://localhost:3000/admin
-   ```
 
 3. **Display Monitor**
    Monitor yang menampilkan nomer antrian seperti di ruang tunggu/lobby dapat mengakses halaman ini.
    ```URL
    http://localhost:3000/display
-   ```
 
 ---
 
